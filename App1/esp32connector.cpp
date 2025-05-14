@@ -41,13 +41,12 @@ bool connector::connectToRoom()
 
         discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
 
-        qDebug() << "Received datagram from: " << sender.toString() << ":" << senderPort;
-        qDebug() << "Content: " << datagram;
+        qDebug() << this->mParent->getRoomInfor("name") +": Received datagram: " << datagram;
 
         if (datagram == this->mParent->getRoomInfor("name")) {
-            qDebug() << this->mParent->getRoomInfor("name") + "discovered at: " << sender.toString();
+            qDebug() << this->mParent->getRoomInfor("name") + ": discovered at: " << sender.toString();
             this->mParent->address = sender.toString();
-            this->mParent->port = 12345;
+            // this->mParent->port = 12345;
         }
     }
 
@@ -90,7 +89,7 @@ bool connector::writeDataToRoom(QString data)
 {
     bool retval = false;
     if(this->mainSocket->write(data.toUtf8()) != -1){
-        qDebug() << "Successfully wrote: " + data;
+        qDebug() << this->mParent->getRoomInfor("name") + ": Successfully wrote: " + data;
         retval =  true;
     }
     else {

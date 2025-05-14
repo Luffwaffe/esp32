@@ -1,14 +1,21 @@
-
 #include <WiFi.h>
+#include <WiFiUdp.h>
+
 #define CONTROL_PIN 0 
 
 // BOM MUSIC BOX
 // 66668888
-const char* ssid     = "BOM MUSIC BOX"; 
-const char* password = "66668888";
-WiFiServer server(3333);
-WiFiClient client;
+const char* ssid = "NAVY_FAST_5G"; 
+const char* password = "12345678";
 String localIp;
+const char* name = "Room1";
+
+const int UDP_PORT = 9999;
+const int TCP_PORT = 12345;
+WiFiServer server;
+WiFiClient client;
+WiFiUDP udp;
+
 void setup() {
   
   pinMode(CONTROL_PIN, OUTPUT);
@@ -27,10 +34,15 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(localIp);
   delay(500);
-  server.begin();
-  Serial.println("TCP server started on port 3333");
-}
 
+
+  // Start TCP server
+  server.begin(TCP_PORT);
+  Serial.println("TCP server started on port 12345" );
+  // Initialize UDP
+  udp.begin(UDP_PORT);
+  Serial.println("Listening for UDP broadcast message...");
+}
 
 void controlRoom(String cmd){
   if(cmd == "start"){
@@ -54,24 +66,53 @@ void controlRoom(String cmd){
   }
 }
 
-void handleCmdFromPC(){
-  client = server.available();
-  if (client) {
-    Serial.println("PC connected!");
-    while (client.connected()) {
-      if (client.available()) {
-        String data = client.readStringUntil('\n');
-        Serial.print("Received: ");
-        Serial.println(data);
+// Function to handle the TCP client interaction
+void handleTCPClient() {
+  Serial.println("handle TCP Client!");
+  while(1){
+    client = server.available();
+    if (client) {
+      Serial.println("PC connected!");
+      while (client.connected()) {
+        if (client.available()) {
+          String data = client.readStringUntil('\n');
+          Serial.print("Received: ");
+          Serial.println(data);
 
-        controlRoom(data);
+          controlRoom(data);
+        }
       }
+      client.stop();
+      Serial.println("Client disconnected, listenning from udp again");
+      udp.begin(UDP_PORT);
+      break;
     }
-    client.stop();
-    Serial.println("Client disconnected");
+  }
+}
+
+void listenForUDP() {
+  int packetSize = udp.parsePacket();
+  if (packetSize) {
+    char incomingPacket[255];
+    int len = udp.read(incomingPacket, 255);
+    if (len > 0) {
+      incomingPacket[len] = '\0';  // Null-terminate the received string
+    }
+
+    Serial.print("Received UDP packet: ");
+    Serial.println(incomingPacket);
+    if (String(incomingPacket) == name) {
+      Serial.println(name);
+      String response = name;
+      udp.beginPacket(udp.remoteIP(), udp.remotePort()); // Send response to the sender's IP and port
+      udp.write((const uint8_t*)response.c_str(), response.length());
+      udp.endPacket(); // End the UDP packet
+      udp.stop();  // Stop listening for UDP messages
+      handleTCPClient();  // Start handling TCP commands
+    }
   }
 }
 
 void loop() {
-  handleCmdFromPC();
+  listenForUDP(); 
 }
