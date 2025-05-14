@@ -2,7 +2,7 @@ import socket
 
 DISCOVERY_PORT = 9999
 TCP_PORT = 12345
-ROOM_NAME = b"Room1"
+ROOM_NAME = b"Room2"
 
 def run_udp_discovery_server():
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
