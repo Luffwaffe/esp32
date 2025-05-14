@@ -41,17 +41,13 @@ class esp32Connector : public QObject
     Q_OBJECT
 
 public:
-    QTime remainingTime;
     QString name;
     QString address;
     quint16 port;
     QThread* thread;
-    QTimer* countdownTimer;
     connector* mConnector = nullptr;
 
     Q_PROPERTY(QString runningStatus READ runningStatus WRITE setRunningStatus NOTIFY runningStatusChanged FINAL)
-    Q_PROPERTY(quint16 timeOrder READ timeOrder WRITE setTimeOrder NOTIFY timeOrderChanged FINAL)
-
     Q_PROPERTY(QString timeStart READ timeStart WRITE setTimeStart NOTIFY timeStartChanged FINAL)
     Q_PROPERTY(QString timeEnd READ timeEnd WRITE setTimeEnd NOTIFY timeEndChanged FINAL)
     Q_PROPERTY(QString timeRemainning READ timeRemainning WRITE setTimeRemainning NOTIFY timeRemainningChanged FINAL)
@@ -60,20 +56,10 @@ public:
 
     Q_INVOKABLE void roomBtnClick();
     Q_INVOKABLE void startEnd();
-    Q_INVOKABLE void refreshBtnClick();
-    Q_INVOKABLE void setTimeBtnClick(quint16 time);
     Q_INVOKABLE QString getRoomInfor(QString infor);
-    void timeHandle();
-    void createJsonFile(QFile* file);
-    void readAndUpdateJsonFile(QFile* file);
-    void updatTimeToJson();
-    void loadTimeFromJson();
-    void jsonTimeHandle();
 
     QString runningStatus() const;
     void setRunningStatus(const QString &newRunningStatus);
-    quint16 timeOrder() const;
-    void setTimeOrder(const quint16 &newTimeOrder);
     QString timeStart() const;
     void setTimeStart(QString newTimeStart);
     QString timeEnd() const;
@@ -85,14 +71,12 @@ signals:
     void sendCmd(QString cmd);
 
     void runningStatusChanged();
-    void timeOrderChanged();
     void timeStartChanged();
     void timeEndChanged();
     void timeRemainningChanged();
 
 private:
     QString m_runningStatus;
-    quint16 m_timeOrder;
     QString m_timeStart;
     QString m_timeEnd;
     QString m_timeRemainning;

@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/App1">
+    <file alias="qmldir">C:/Q/jobs/esp32/App1/build/Desktop_Qt_6_5_3_MSVC2019_64bit-Release/App1/qmldir</file>
+  </qresource>
+</RCC>
+

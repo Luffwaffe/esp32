@@ -17,8 +17,7 @@ void connector::initializeSocket()
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
     });
-    // connect(mainSocket, &QTcpSocket::readyRead, this, &connector::readDataFromRoom);
-    this->sendCmd(notConnectStatus);
+    // this->sendCmd(notConnectStatus);
     while (connectToRoom() != true) {
          qDebug() << mParent->name+ ": Try to connect to server!";
     }
@@ -96,8 +95,8 @@ QString connector::sendCmd(QString cmd)
 {
     QString rep;
     if(this->writeDataToRoom(cmd) == true){
+        this->readDataFromRoom();
     }
-    this->readDataFromRoom();
     return rep;
 }
 
@@ -107,22 +106,9 @@ void connector::handleResponseFromRoom(QString rep)
         mParent->setRunningStatus(rep);
     }
     else if(rep == startedStatus){
-
-        auto currentStatus = mParent->runningStatus();
-        if(currentStatus == notConnectStatus){
-
-            mParent->loadTimeFromJson();
-        }
-        else if(currentStatus == endStatus) {
-            mParent->updatTimeToJson();
-        }
         mParent->setRunningStatus(rep);
     }
     else if(rep == endStatus){
-        auto currentStatus = mParent->runningStatus();
-        if(currentStatus == startedStatus) {
-            mParent->updatTimeToJson();
-        }
         mParent->setRunningStatus(rep);
     }
 }
@@ -133,57 +119,17 @@ void connector::heartBeat(){
     connect(heartbeat, &QTimer::timeout, this, [=]() mutable {
         qDebug()<<this->mParent->name+": "+"Heartbeat";
         this->sendCmd(getRunningStatusCmd);
-        auto reply = readDataFromRoom();
-        if(this->mParent->runningStatus() == startedStatus){
-            qDebug()<<this->mParent->name+": "+"update remaining time";
+        if(this->mParent->runningStatus() == startedStatus){ // log the current using time to a json, handle for power down
+            qDebug()<<this->mParent->name+": "+"update used time";
             QTime current = QTime::currentTime();
-            QTime endTime = QTime::fromString(this->mParent->timeEnd(), "HH:mm:ss");
+            QTime startTime = QTime::fromString(this->mParent->timeStart(), "HH:mm:ss");
 
-            int secondsRemaining = current.secsTo(endTime);
-            if (secondsRemaining < 0) {
-                qDebug() << "End time is before start time (maybe it's for the next day).";
-                secondsRemaining += 24 * 60 * 60;
+            int secondsUsing = startTime.secsTo(current);
+            if (secondsUsing < 0) {
+                qDebug() << "current time is before start time (maybe it's for the next day).";
+                secondsUsing += 24 * 60 * 60;
             }
-            QString remainingTime = QTime(0, 0).addSecs(secondsRemaining).toString();
-
-            QFile file("roomTimeData.json");
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                qDebug() << "Failed to open file:" << file.errorString();
-                return;
-            }
-            QByteArray data = file.readAll();
-            file.close();
-            QJsonParseError parseError;
-            QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
-
-            if (parseError.error != QJsonParseError::NoError) {
-                qDebug() << "JSON parse error:" << parseError.errorString();
-                return;
-            }
-
-            if (!jsonDoc.isArray()) {
-                qDebug() << "JSON is not an array.";
-                return;
-            }
-
-            QJsonArray jsonArray = jsonDoc.array();
-            for (int i = 0; i < jsonArray.size(); ++i) {
-                QJsonObject obj = jsonArray[i].toObject();
-                QString name = obj["name"].toString();
-                if(name == this->mParent->name){
-                    obj["remainning"] = remainingTime;
-                    obj["endTimeReal"] = current.toString();
-                    jsonArray[i] = obj;
-
-                    QJsonDocument updatedDoc(jsonArray);
-                    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-                        qDebug() << "Failed to open file for writing";
-                        return;
-                    }
-                    file.write(updatedDoc.toJson(QJsonDocument::Indented));
-                    file.close();
-                }
-            }
+            QString usingTime = QTime(0, 0).addSecs(secondsUsing).toString();
         }
     });
     heartbeat->start(60000); // Tick every second
@@ -194,23 +140,9 @@ esp32Connector::esp32Connector(QString name, QString address, quint16 port) {
     this->name = name;
     this->address = address;
     this->port = port;
-    this->setTimeOrder(0);
     this->setRunningStatus(notConnectStatus);
     this->mConnector = new connector(this);
     this->thread = new QThread;
-    this->countdownTimer = new QTimer();
-    connect(countdownTimer, &QTimer::timeout, this, [&]() mutable {
-        if (remainingTime == QTime(0, 0, 0)) {
-            countdownTimer->stop();
-            qDebug() << this->name+ ": Countdown finished!";
-            emit this->startEnd();
-            return;
-        }
-
-        remainingTime = remainingTime.addSecs(-1);
-        this->setTimeRemainning(remainingTime.toString("hh:mm:ss"));
-    });
-
     this->mConnector->moveToThread(this->thread);
     QObject::connect(thread, &QThread::started, mConnector, &connector::initializeSocket);
     QObject::connect(this,&esp32Connector::sendCmd, mConnector, &connector::sendCmd);
@@ -227,37 +159,15 @@ void esp32Connector::startEnd()
     if(this->runningStatus() == startedStatus
         ){
         emit this->sendCmd(endCmd);
-        this->setTimeOrder(0);
-        this->countdownTimer->stop();
     }
-    else if(this->runningStatus() == endStatus
-            && this->timeOrder() != 0){
+    else if(this->runningStatus() == endStatus){
         emit this->sendCmd(startCmd);
-        timeHandle();
     }
     else if(this->runningStatus() == notConnectStatus){
         qDebug()<<this->name+ ": "+"No connection";
     }
     else{
         qDebug()<<this->name+ ": "+"Did not set timer order";
-    }
-}
-
-void esp32Connector::refreshBtnClick()
-{
-    this->mConnector->connectToRoom();
-}
-
-void esp32Connector::setTimeBtnClick(quint16 time)
-{
-    //time format is hhmm: 1234 ~ 12h 44m
-    quint16 minute = time/100*60 +time%100;
-    if(this->runningStatus() == endStatus){
-        qDebug()<<this->name+ " set time: "+QString::number(minute);
-        this->setTimeOrder(minute);
-    }
-    else{
-         qDebug()<<this->name+ ": "+"Can not set time";
     }
 }
 
@@ -284,240 +194,6 @@ void esp32Connector::setRunningStatus(const QString &newRunningStatus)
         return;
     m_runningStatus = newRunningStatus;
     emit runningStatusChanged();
-}
-
-void esp32Connector::timeHandle()
-{
-
-    QTime startTime = QTime::currentTime();
-    QTime endTime = startTime.addSecs(this->timeOrder()*60);
-
-    quint16 hh = this->timeOrder()/60;
-    quint16 mm = this->timeOrder()%60;
-    remainingTime = QTime(hh, mm, 0);
-    qDebug() << this->name+ "remainning time: "<<hh<<mm;
-    this->setTimeStart(startTime.toString("hh:mm:ss"));
-    this->setTimeEnd(endTime.toString("hh:mm:ss"));
-    this->setTimeRemainning(remainingTime.toString("hh:mm:ss"));
-    countdownTimer->start(1000);
-}
-
-void esp32Connector::createJsonFile(QFile* file) {
-    //////////////////////////////////////////////////////////////////////
-    QTime current = QTime::currentTime();
-    QTime endTime = QTime::fromString(this->timeEnd(), "HH:mm:ss");
-
-    int secondsRemaining = current.secsTo(endTime);
-    if (secondsRemaining < 0) {
-        qDebug() << "End time is before start time (maybe it's for the next day).";
-        secondsRemaining += 24 * 60 * 60;
-    }
-    QString remainingTime = QTime(0, 0).addSecs(secondsRemaining).toString();
-    //////////////////////////////////////////////////////////////////
-    QString currentTime = current.toString("hh:mm:ss");
-    QJsonArray jsonArray;
-    for (int i = 1; i <= 8; ++i) {
-        QJsonObject obj;
-        obj["name"] = QString("Room") + QString::number(i);
-        if(obj["name"] == this->name){
-            obj["startTime"] = this->timeStart();
-            obj["endTime"] =  this->timeEnd();
-            obj["endTimeReal"] =  currentTime;
-            obj["remainning"] =  remainingTime;
-        }
-        else{
-            obj["startTime"] = "00:00:00";
-            obj["endTime"] =  "00:00:00";
-            obj["endTimeReal"] =  "00:00:00";
-            obj["remainning"] =  "00:00:00";
-        }
-        jsonArray.append(obj);
-    }
-
-    QJsonDocument jsonDoc(jsonArray);
-
-    if (!file->open(QIODevice::ReadWrite)) {
-        qDebug() << "Could not open file for writing.";
-        return;
-    }
-
-    file->write(jsonDoc.toJson());
-    file->close();
-    qDebug() << "JSON file created successfully.";
-}
-
-void esp32Connector::readAndUpdateJsonFile(QFile* file)
-{
-    QTime current = QTime::currentTime();
-    QString currentTime = current.toString("hh:mm:ss");
-    QTime endTime = QTime::fromString(this->timeEnd(), "HH:mm:ss");
-
-    int secondsRemaining = current.secsTo(endTime);
-    if (secondsRemaining < 0) {
-        qDebug() << "End time is before start time (maybe it's for the next day).";
-        secondsRemaining += 24 * 60 * 60;
-    }
-    QString remainingTime = QTime(0, 0).addSecs(secondsRemaining).toString();
-
-
-    QByteArray data = file->readAll();
-    file->close();
-    QJsonParseError parseError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        qDebug() << "JSON parse error:" << parseError.errorString();
-        return;
-    }
-
-    if (!jsonDoc.isArray()) {
-        qDebug() << "JSON is not an array.";
-        return;
-    }
-
-    QJsonArray jsonArray = jsonDoc.array();
-    for (int i = 0; i < jsonArray.size(); ++i) {
-        QJsonObject obj = jsonArray[i].toObject();
-        QString name = obj["name"].toString();
-        if(name == this->name){
-            QString startTime = obj["startTime"].toString();
-            QString endTime = obj["endTime"].toString();
-
-            qDebug() << "Name:" << name;
-            qDebug() << "oldStartTime:" << startTime;
-            qDebug() << "oldEndTime:" << endTime;
-
-            obj["startTime"] = this->timeStart();
-            obj["endTime"] = this->timeEnd();
-            obj["endTimeReal"] =  currentTime;
-            obj["remainning"] = remainingTime;
-            jsonArray[i] = obj;
-
-            QJsonDocument updatedDoc(jsonArray);
-            if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-                qDebug() << "Failed to open file for writing";
-                return;
-            }
-            file->write(updatedDoc.toJson(QJsonDocument::Indented));
-            file->close();
-            qDebug() << "Name:" << name;
-            qDebug() << "newStartTime:" << obj["startTime"];
-            qDebug() << "newEndTime:" << obj["endTime"];
-            qDebug() << "newEndTimeReal:" << obj["endTimeReal"];
-
-        }
-    }
-}
-
-void esp32Connector::updatTimeToJson()
-{
-    qDebug()<<this->name+": "<<"updatTimeToJson";
-    QFile file("roomTimeData.json");
-    if(!file.exists()){
-        this->createJsonFile(&file);
-    }
-    else if (!file.open(QIODevice::ReadWrite | QIODevice::Text)) {
-        qDebug() << "Could not open file for reading create new one.";
-    }
-    else{ //case disconnect while room is still running
-        this->readAndUpdateJsonFile(&file);
-    }
-}
-
-void esp32Connector::loadTimeFromJson()
-{
-    QFile file("roomTimeData.json");
-    if(!file.exists()){
-        this->createJsonFile(&file);
-    }
-    else if (!file.open(QIODevice::ReadWrite | QIODevice::Text)) {
-        qDebug() << "Could not open file for reading create new one.";
-    }
-    else{
-        qDebug()<<this->name+": "<<"loadTimeFromJson";
-        QByteArray data = file.readAll();
-        file.close();
-
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
-
-        if (parseError.error != QJsonParseError::NoError) {
-            qDebug() << "JSON parse error:" << parseError.errorString();
-            return;
-        }
-
-        if (!jsonDoc.isArray()) {
-            qDebug() << "JSON is not an array.";
-            return;
-        }
-
-        QJsonArray jsonArray = jsonDoc.array();
-        for (int i = 0; i < jsonArray.size(); ++i) {
-            QJsonObject obj = jsonArray[i].toObject();
-            QString name = obj["name"].toString();
-            if(name == this->name){
-                QString startTime = obj["startTime"].toString();
-                QString endTime = obj["endTime"].toString();
-
-                qDebug() << "Name:" << name;
-                qDebug() << "currentStartTime:" << startTime;
-                qDebug() << "currentEndTime:" << endTime;
-                this->setTimeStart(startTime);
-                this->setTimeEnd(endTime);
-
-                ////////////////////////////////////////////////////////////////////////////////////////////
-                /// \brief newStartTime
-                ///////////////////////////////////////////////////////////////////////////////////////////
-                QTime newStartTime = QTime::currentTime();
-                QTime newEndTime = QTime::fromString(this->timeEnd(), "HH:mm:ss");
-
-                int secondsRemaining = newStartTime.secsTo(newEndTime);
-                if (secondsRemaining < 0) {
-                    qDebug() << "End time is before start time (maybe it's for the next day).";
-                    // Optionally handle overnight wrap-around:
-                    secondsRemaining += 24 * 60 * 60; // Add 24 hours in seconds
-                }
-                QTime remainingTime = QTime(0, 0).addSecs(secondsRemaining);
-                //counter
-                qDebug() << this->name+ remainingTime.toString("HH:mm:ss");
-                QTimer* subCountdownTimer = new QTimer(this);
-                connect(subCountdownTimer, &QTimer::timeout, this, [=]() mutable {
-                    if (remainingTime == QTime(0, 0, 0) || this->runningStatus() == endStatus
-                        || this->runningStatus() == notConnectStatus) {
-                        subCountdownTimer->stop();
-                        qDebug() << this->name+ ": Countdown finished!";
-                        emit this->startEnd();
-                        return;
-                    }
-
-                    remainingTime = remainingTime.addSecs(-1);
-                    this->setTimeRemainning(remainingTime.toString("hh:mm:ss"));
-                });
-                subCountdownTimer->start(1000); // Tick every second
-
-                this->setTimeRemainning(remainingTime.toString("hh:mm:ss"));
-            }
-        }
-    }
-}
-
-void esp32Connector::jsonTimeHandle()
-{
-
-}
-
-
-quint16 esp32Connector::timeOrder() const
-{
-    return m_timeOrder;
-}
-
-void esp32Connector::setTimeOrder(const quint16 &newTimeOrder)
-{
-    if (m_timeOrder == newTimeOrder)
-        return;
-    m_timeOrder = newTimeOrder;
-    emit timeOrderChanged();
 }
 
 QString esp32Connector::timeStart() const

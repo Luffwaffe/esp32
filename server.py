@@ -2,7 +2,7 @@ import socket
 
 # Server settings
 HOST = '127.0.0.1'  # localhost
-PORT = 1234         # same port the client will connect to
+PORT = 11111         # same port the client will connect to
 
 # Create a socket (IPv4, TCP)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

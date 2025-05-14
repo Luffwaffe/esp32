@@ -1,0 +1,169 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Release-fb37107759a9afc7d728.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "App1",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint-Release-b545243348f1d01664a5.json",
+					"name" : "all_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_json-Release-e10c942d3a446b0d980e.json",
+					"name" : "all_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_module-Release-cb5d03b82c7b10e10dbd.json",
+					"name" : "all_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmltyperegistrations::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmltyperegistrations-Release-d92b1627e6af335bb13a.json",
+					"name" : "all_qmltyperegistrations",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1-Release-9cb09209142a32b11806.json",
+					"name" : "appApp1",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_autogen-Release-bb42d2cb049bb7b97331.json",
+					"name" : "appApp1_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_autogen_timestamp_deps-Release-48c9cb7ffb5b56387beb.json",
+					"name" : "appApp1_autogen_timestamp_deps",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_qmlimportscan::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_qmlimportscan-Release-681a29f838d19fc12399.json",
+					"name" : "appApp1_qmlimportscan",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_qmllint-Release-47c29bf101eb8d5cff23.json",
+					"name" : "appApp1_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_qmllint_json-Release-4a40af1b47eb32d1d57c.json",
+					"name" : "appApp1_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_qmllint_module-Release-5a6e20d16997f9f81b91.json",
+					"name" : "appApp1_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_qmltyperegistration::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_qmltyperegistration-Release-42979e824ab7f0997013.json",
+					"name" : "appApp1_qmltyperegistration",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appApp1_tooling::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appApp1_tooling-Release-0b1ae0cf62efecf4e383.json",
+					"name" : "appApp1_tooling",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Q/jobs/esp32/App1/build/Desktop_Qt_6_5_3_MSVC2019_64bit-Release",
+		"source" : "C:/Q/jobs/esp32/App1"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
