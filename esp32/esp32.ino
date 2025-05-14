@@ -16,16 +16,6 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-
-  // IPAddress local_IP(192, 168, 2, 33);       // Choose an unused IP in your network
-  // IPAddress gateway(192, 168, 1, 1);          // Your router's IP
-  // IPAddress subnet(255, 255, 255, 0);
-  // IPAddress primaryDNS(8, 8, 8, 8);           // Optional
-  // IPAddress secondaryDNS(8, 8, 4, 4);
-  // if (!WiFi.config(local_IP)) {
-  //     Serial.println("⚠️  STA Failed to configure");
-  // }
-
   Serial.println("Connecting to WiFi...");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {

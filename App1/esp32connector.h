@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QFile>
 #include <QJsonArray>
+#include <QUdpSocket>
 
 class esp32Connector;
 class connector : public QObject
@@ -18,6 +19,7 @@ class connector : public QObject
     Q_OBJECT
 public:
     QTcpSocket *mainSocket;
+    QUdpSocket *discoverSocket;
 public:
 
     connector(QObject* parent);

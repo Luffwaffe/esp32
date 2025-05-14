@@ -8,6 +8,10 @@ connector::connector(QObject* parent)
 void connector::initializeSocket()
 {
     mainSocket = new QTcpSocket(this);
+    discoverSocket = new QUdpSocket(this);
+    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 1);
+    discoverSocket->bind(0);
+
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
         qDebug() << mParent->name + ": Connected to server!";
         this->sendCmd(getRunningStatusCmd);
@@ -17,7 +21,7 @@ void connector::initializeSocket()
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
     });
-    // this->sendCmd(notConnectStatus);
+
     while (connectToRoom() != true) {
          qDebug() << mParent->name+ ": Try to connect to server!";
     }
@@ -27,6 +31,27 @@ void connector::initializeSocket()
 bool connector::connectToRoom()
 {
     bool retval = false;
+    //UDP
+    discoverSocket->writeDatagram(this->mParent->getRoomInfor("name").toUtf8().data(), QHostAddress::Broadcast, 9999);
+    while (discoverSocket->hasPendingDatagrams()) {
+        QByteArray datagram;
+        datagram.resize(discoverSocket->pendingDatagramSize());
+        QHostAddress sender;
+        quint16 senderPort;
+
+        discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
+
+        qDebug() << "Received datagram from: " << sender.toString() << ":" << senderPort;
+        qDebug() << "Content: " << datagram;
+
+        if (datagram == this->mParent->getRoomInfor("name")) {
+            qDebug() << this->mParent->getRoomInfor("name") + "discovered at: " << sender.toString();
+            this->mParent->address = sender.toString();
+            this->mParent->port = 12345;
+        }
+    }
+
+    //TCP
     this->mainSocket->connectToHost(mParent->address, mParent->port);
     if (this->mainSocket->waitForConnected(3000)) {
         retval = true;
@@ -52,7 +77,6 @@ void connector::tryToConnect()
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
     });
-    // connect(mainSocket, &QTcpSocket::readyRead, this, &connector::readDataFromRoom);
 
     while (true) {
         qDebug() << mParent->name + ": Try to connect to server!";
