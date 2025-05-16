@@ -9,7 +9,7 @@ void connector::initializeSocket()
 {
     mainSocket = new QTcpSocket(this);
     discoverSocket = new QUdpSocket(this);
-    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 1);
+    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 0);
     discoverSocket->bind(0);
 
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
@@ -58,12 +58,12 @@ bool connector::connectToRoom()
         }
         else{
             qDebug() << mParent->name+ ": Failed to connect to UDP server!";
-            QThread::sleep(3);
+            QThread::sleep(1);
         }
     }
     else {
         qDebug() << mParent->name+ ": Failed to write to UDP server!";
-        QThread::sleep(3);
+        QThread::sleep(1);
     }
     return retval;
 }
@@ -95,12 +95,13 @@ void connector::tryToConnect()
 bool connector::writeDataToRoom(QString data)
 {
     bool retval = false;
-    if(this->mainSocket->write(data.toUtf8()) != -1){
+    this->mainSocket->write(data.toUtf8());
+    if(mainSocket->waitForBytesWritten(1000)){
         qDebug() << this->mParent->getRoomInfor("name") + ": Successfully wrote: " + data;
         retval =  true;
     }
     else {
-        qDebug() << "Write failed:" << this->mainSocket->errorString();
+        qDebug() << mParent->name+"Write failed:" << this->mainSocket->errorString();
     }
     return retval;
 }
@@ -108,10 +109,10 @@ bool connector::writeDataToRoom(QString data)
 QString connector::readDataFromRoom()
 {
     QString data ="";
-    if (this->mainSocket->waitForReadyRead(3000)){
+    if (this->mainSocket->waitForReadyRead(1000)){
         data = QString::fromUtf8(this->mainSocket->readAll());
         if(data != ""){
-            qDebug() << "Received data from:"+ mParent->name +": "+ data;
+            qDebug() << mParent->name+": Received data from:"+": "+ data;
             this->handleResponseFromRoom(data);
         }
     }
@@ -148,21 +149,45 @@ void connector::heartBeat(){
     heartbeat = new QTimer(this);
     connect(heartbeat, &QTimer::timeout, this, [=]() mutable {
         qDebug()<<this->mParent->name+": "+"Heartbeat";
-        this->sendCmd(getRunningStatusCmd);
-        if(this->mParent->runningStatus() == startedStatus){ // log the current using time to a json, handle for power down
+        // this->sendCmd(getRunningStatusCmd);
+        if(!this->isDisconnectFromPeer()){
+            emit this->mainSocket->disconnected();
+        }
+        /////////////////////Handle store data
+        if(this->mParent->runningStatus() == startedStatus){
             qDebug()<<this->mParent->name+": "+"update used time";
             QTime current = QTime::currentTime();
             QTime startTime = QTime::fromString(this->mParent->timeStart(), "HH:mm:ss");
 
             int secondsUsing = startTime.secsTo(current);
             if (secondsUsing < 0) {
-                qDebug() << "current time is before start time (maybe it's for the next day).";
+                qDebug() << mParent->name+": current time is before start time (maybe it's for the next day).";
                 secondsUsing += 24 * 60 * 60;
             }
             QString usingTime = QTime(0, 0).addSecs(secondsUsing).toString();
         }
+        ////////////////////////////////////////
     });
-    heartbeat->start(60000); // Tick every second
+    heartbeat->start(3000); // Tick every second
+}
+
+bool connector::isDisconnectFromPeer()
+{
+    bool retVal = false;
+    if(this->writeDataToRoom(getRunningStatusCmd) == true){
+        if (this->mainSocket->waitForReadyRead(2000)){
+            auto data = QString::fromUtf8(this->mainSocket->readAll());
+            if(data != ""){
+                qDebug() << mParent->name+": Received data from:"+": "+ data;
+                this->handleResponseFromRoom(data);
+                retVal = true;
+            }
+        }
+        else{
+            qDebug() <<  mParent->name+": Disconnected from peer";
+        }
+    }
+    return retVal;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

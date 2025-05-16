@@ -27,7 +27,7 @@ public slots:
     void initializeCardConnection();
     // void tryToConnect();
     QString handleCard();
-    // void heartBeat();
+    bool checkPortConnection();
 public:
     cardController* mParent = nullptr;
 };

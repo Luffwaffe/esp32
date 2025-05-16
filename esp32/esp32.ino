@@ -48,12 +48,12 @@ void controlRoom(String cmd){
   if(cmd == "start"){
     digitalWrite(CONTROL_PIN, HIGH);
     client.print("started");
-    Serial.print("REPLYED: started");
+    Serial.print("Replyed: started\n");
   }
   else if(cmd == "end"){
     digitalWrite(CONTROL_PIN, LOW);
     client.print("ended");
-    Serial.print("REPLYED: ended");
+    Serial.print("REPLYED: ended\n");
   }
   else if(cmd == "getRunningStatus"){
     int pinStatus = digitalRead(CONTROL_PIN);
@@ -62,7 +62,7 @@ void controlRoom(String cmd){
     } else {
         client.print("ended");
     }
-    Serial.print("REPLYED QQQQ");
+    Serial.print("REPLYED getRunningStatus OK\n");
   }
 }
 
@@ -78,14 +78,15 @@ void handleTCPClient() {
           String data = client.readStringUntil('\n');
           Serial.print("Received: ");
           Serial.println(data);
-
           controlRoom(data);
+        }
+        else{
         }
       }
       client.stop();
-      Serial.println("Client disconnected, listenning from udp again");
+      Serial.println("Client disconnected, Listening for UDP broadcast message again...");
       udp.begin(UDP_PORT);
-      break;
+      return;
     }
   }
 }
@@ -102,7 +103,6 @@ void listenForUDP() {
     Serial.print("Received UDP packet: ");
     Serial.println(incomingPacket);
     if (String(incomingPacket) == name) {
-      Serial.println(name);
       String response = name;
       udp.beginPacket(udp.remoteIP(), udp.remotePort()); // Send response to the sender's IP and port
       udp.write((const uint8_t*)response.c_str(), response.length());

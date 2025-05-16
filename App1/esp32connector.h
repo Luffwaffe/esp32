@@ -28,6 +28,7 @@ public slots:
     QString sendCmd(QString cmd);
     void handleResponseFromRoom(QString rep);
     void heartBeat();
+    bool isDisconnectFromPeer();
 public:
     esp32Connector* mParent = nullptr;
 };
