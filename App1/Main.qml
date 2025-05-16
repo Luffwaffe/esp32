@@ -26,15 +26,19 @@ Window {
            border.color: "white"
 
        }
+
+       property string roomName: ""
+
        Label {
            id:l
-           text: "BẠN CÓ CHẮC CHẮN TẮT PHÒNG?"
-           color: "white"
+           text: "XÁC NHẬN TẮT " + endPopup.roomName.toUpperCase() + "?"
+           color: "red"
            font.pixelSize: 20
+           font.bold: true
            Layout.alignment: Qt.AlignHCenter
            anchors.horizontalCenter: parent.horizontalCenter
            anchors.top:parent.top
-           anchors.topMargin: 20
+           anchors.topMargin: 30
        }
 
 
@@ -93,89 +97,6 @@ Window {
            }
        }
 
-    }
-    Popup {
-       id: numberPopup
-       width: 350
-       height: 150
-       modal: true
-       focus: true
-       closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-       anchors.centerIn: parent
-       background: Rectangle {
-           color: "#528AA2"
-           radius: 10
-           border.color: "white"
-
-       }
-
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 20
-
-            Label {
-                text: "Nhập thời gian"
-                color: "white"
-                font.pixelSize: 34
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            RowLayout {
-                spacing: 10
-                Layout.alignment: Qt.AlignHCenter
-
-                TextField {
-                    id: hourField
-                    background: Rectangle {
-                       color: "white"
-                       radius: 3
-                       width: 50
-                       height: 30
-                    }
-                    placeholderText: "Giờ"
-
-                    font.pixelSize: 18
-                    inputMethodHints: Qt.ImhDigitsOnly
-                    validator: IntValidator { bottom: 0; top: 99 }
-                }
-
-                TextField {
-                    id: minuteField
-                    placeholderText: "Phút"
-                    background: Rectangle {
-                       color: "white"
-                       radius: 3
-                       width: 50
-                       height: 30
-                    }
-                    width: 100
-                    height: 40
-                    font.pixelSize: 18
-                    inputMethodHints: Qt.ImhDigitsOnly
-                    validator: IntValidator { bottom: 0; top: 59 }
-                }
-            }
-
-            Button {
-                text: "Xác nhận"
-
-                font.pixelSize: 20
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10
-                background: Rectangle {
-                   color: "#C5CFD3"
-                   radius: 8
-                }
-                Layout.alignment: Qt.AlignHCenter
-                onClicked: {
-                    var hour = parseInt(hourField.text)
-                    var minute = parseInt(minuteField.text)
-                    var time = hour * 100 + minute
-                    roomInforRec.roomModel.setTimeBtnClick(time);
-                    numberPopup.close();
-                }
-            }
-        }
     }
     //top rec
     Rectangle {
@@ -484,6 +405,7 @@ Window {
                 anchors.fill: parent
                 onClicked: {
                     if(roomInforRec.roomModel.runningStatus === "started"){
+                        endPopup.roomName = roomInforRec.roomModel.getRoomInfor("name")
                         endPopup.open();
                     }
                     else{

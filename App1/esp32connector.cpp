@@ -168,7 +168,7 @@ void connector::heartBeat(){
         }
         ////////////////////////////////////////
     });
-    heartbeat->start(3000); // Tick every second
+    heartbeat->start(3000); // Tick every 3 second
 }
 
 bool connector::isDisconnectFromPeer()
