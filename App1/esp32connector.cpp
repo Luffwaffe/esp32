@@ -181,11 +181,11 @@ void esp32Connector::startEnd()
 {
     if(this->runningStatus() == startedStatus){
         emit this->sendCmd(endCmd);
-        handleUsedTimeAndUpdateStartStopTime(endCmd); //stop used time timer and update end time (keep start time)
+        // handleUsedTimeAndUpdateStartStopTime(endCmd); //stop used time timer and update end time (keep start time)
     }
     else if(this->runningStatus() == endStatus){
         emit this->sendCmd(startCmd);
-        handleUsedTimeAndUpdateStartStopTime(startCmd); //start used time timer and update start time as current time (keep end time)
+        // handleUsedTimeAndUpdateStartStopTime(startCmd); //start used time timer and update start time as current time (keep end time)
     }
     else if(this->runningStatus() == notConnectStatus){
         qDebug()<<this->name+ ": "+"No connection";

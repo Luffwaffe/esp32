@@ -7,10 +7,7 @@
 #include <cmdAndStatus.h>
 #include<QTimer>
 #include<QTime>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QFile>
-#include <QJsonArray>
 #include <QUdpSocket>
 
 class esp32Connector;
