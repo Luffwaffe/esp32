@@ -10,6 +10,7 @@
 #include <QTextStream>
 #include <QDebug>
 #include <QThread>
+#include <esp32connector.h>
 
 class cardController;
 
@@ -25,7 +26,7 @@ public:
 public slots:
     void initializeCardConnection();
     // void tryToConnect();
-    QString readCardID();
+    QString handleCard();
     // void heartBeat();
 public:
     cardController* mParent = nullptr;
@@ -39,8 +40,10 @@ public:
     QString currentCardID;
     QThread* thread;
     cardReader* mCardReader = nullptr;
+    QMap<QString,esp32Connector*> roomMap;
 
     cardController();
+    void insertRoomMap(QString IDRoom, esp32Connector* room);
 };
 
 #endif // CARDCONTROLLER_H

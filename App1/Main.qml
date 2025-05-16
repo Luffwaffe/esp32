@@ -282,7 +282,6 @@ Window {
                 anchors.fill: parent
                 onClicked: {
                     startEndBtn.mRoom = "room1"
-                    room1model.roomBtnClick();
                     roomInforRec.roomModel = room1model;
                 }
             }
@@ -313,7 +312,6 @@ Window {
                 anchors.fill: parent
                 onClicked: {
                     startEndBtn.mRoom = "room2"
-                    room2model.roomBtnClick();
                     roomInforRec.roomModel = room2model;
                 }
             }

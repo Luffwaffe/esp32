@@ -8,7 +8,20 @@ cardReader::cardReader(QObject *parent)
 
 void cardReader::initializeCardConnection()
 {
-    serial.setPortName("COM5");
+    //Detect CH340 port
+    QString CH340Port = "";
+    const auto ports = QSerialPortInfo::availablePorts();
+    for (const QSerialPortInfo &port : ports) {
+        QString description = port.description().toLower();
+        QString manufacturer = port.manufacturer().toLower();
+
+        if (description.contains("ch340") || manufacturer.contains("wch")) {
+            CH340Port = port.portName();
+            qDebug() << "CH340 detected on port:" << CH340Port << ",  Description:" << port.description();
+        }
+    }
+    ////////////////////////////////
+    serial.setPortName(CH340Port);
     serial.setBaudRate(QSerialPort::Baud9600);
     serial.setDataBits(QSerialPort::Data8);
     serial.setParity(QSerialPort::NoParity);
@@ -24,7 +37,7 @@ void cardReader::initializeCardConnection()
     }
 }
 
-QString cardReader::readCardID()
+QString cardReader::handleCard()
 {
     QByteArray responseData = "";
     QByteArray atCommand = "AT+ID\r\n";
@@ -41,6 +54,7 @@ QString cardReader::readCardID()
                         responseData = serial.readAll().mid(5,8);
                         this->mParent->currentCardID = responseData;
                         qDebug() << "Card ID: " << responseData << "\n";
+                        this->mParent->roomMap[responseData]->startEnd();
                     } else {
                         qDebug() << "No response received within timeout period\n";
                     }
@@ -57,6 +71,12 @@ cardController::cardController() {
     this->mCardReader = new cardReader(this);
     this->thread = new QThread;
     this->mCardReader->moveToThread(this->thread);
-    QObject::connect(thread, &QThread::started, mCardReader, &cardReader::readCardID);
+    QObject::connect(thread, &QThread::started, mCardReader, &cardReader::handleCard);
     this->thread->start();
 }
+
+void cardController::insertRoomMap(QString IDRoom, esp32Connector* room)
+{
+    roomMap.insert(IDRoom,room);
+}
+

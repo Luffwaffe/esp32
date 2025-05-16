@@ -17,8 +17,6 @@ class connector : public QObject
 public:
     QTcpSocket *mainSocket;
     QUdpSocket *discoverSocket;
-public:
-
     connector(QObject* parent);
     QTimer* heartbeat;
 public slots:
@@ -53,7 +51,6 @@ public:
 
     esp32Connector(QString name, QString address, quint16 port);
 
-    Q_INVOKABLE void roomBtnClick();
     Q_INVOKABLE void startEnd();
     Q_INVOKABLE QString getRoomInfor(QString infor);
 
@@ -68,7 +65,6 @@ public:
 
 signals:
     void sendCmd(QString cmd);
-
     void runningStatusChanged();
     void timeStartChanged();
     void timeEndChanged();

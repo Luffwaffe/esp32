@@ -3,6 +3,7 @@
 #include <esp32connector.h>
 #include <QQmlContext>
 #include <cardcontroller.h>
+#include "cmdAndStatus.h"
 
 int main(int argc, char *argv[])
 {
@@ -18,6 +19,8 @@ int main(int argc, char *argv[])
 
     //card controller
     cardController* mCardController = new cardController();
+    mCardController->insertRoomMap(IDRoom1,room1);
+    mCardController->insertRoomMap(IDRoom2,room2);
 
     QObject::connect(
         &engine,

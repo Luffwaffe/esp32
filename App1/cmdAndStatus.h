@@ -10,4 +10,6 @@ const QString startedStatus = "started";
 const QString endStatus = "ended";
 const QString notConnectStatus = "No connection";
 
+const QString IDRoom1 = "F270C805";
+const QString IDRoom2 = "61B4B305";
 #endif // CMDANDSTATUS_H

@@ -32,31 +32,38 @@ bool connector::connectToRoom()
 {
     bool retval = false;
     //UDP
-    discoverSocket->writeDatagram(this->mParent->getRoomInfor("name").toUtf8().data(), QHostAddress::Broadcast, 9999);
-    while (discoverSocket->hasPendingDatagrams()) {
-        QByteArray datagram;
-        datagram.resize(discoverSocket->pendingDatagramSize());
-        QHostAddress sender;
-        quint16 senderPort;
+    if(discoverSocket->writeDatagram(this->mParent->getRoomInfor("name").toUtf8().data(), QHostAddress::Broadcast, 9999)){
+        if (discoverSocket->hasPendingDatagrams()) {
+            QByteArray datagram;
+            datagram.resize(discoverSocket->pendingDatagramSize());
+            QHostAddress sender;
+            quint16 senderPort;
 
-        discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
+            discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
 
-        qDebug() << this->mParent->getRoomInfor("name") +": Received datagram: " << datagram;
+            qDebug() << this->mParent->getRoomInfor("name") +": Received datagram: " << datagram;
 
-        if (datagram == this->mParent->getRoomInfor("name")) {
-            qDebug() << this->mParent->getRoomInfor("name") + ": discovered at: " << sender.toString();
-            this->mParent->address = sender.toString();
-            // this->mParent->port = 12345;
+            if (datagram == this->mParent->getRoomInfor("name")){
+                qDebug() << this->mParent->getRoomInfor("name") + ": discovered at: " << sender.toString();
+                this->mParent->address = sender.toString();
+                //TCP
+                this->mainSocket->connectToHost(mParent->address, mParent->port);
+                if (this->mainSocket->waitForConnected(3000)){
+                    retval = true;
+                }
+                else{
+                    qDebug() << mParent->name+ ": Failed to connect to TCP server!";
+                }
+            }
+        }
+        else{
+            qDebug() << mParent->name+ ": Failed to connect to UDP server!";
+            QThread::sleep(3);
         }
     }
-
-    //TCP
-    this->mainSocket->connectToHost(mParent->address, mParent->port);
-    if (this->mainSocket->waitForConnected(3000)) {
-        retval = true;
-    }
-    else{
-        qDebug() << mParent->name+ ": Failed to connect to server!";
+    else {
+        qDebug() << mParent->name+ ": Failed to write to UDP server!";
+        QThread::sleep(3);
     }
     return retval;
 }
@@ -171,11 +178,6 @@ esp32Connector::esp32Connector(QString name, QString address, quint16 port) {
     QObject::connect(this,&esp32Connector::sendCmd, mConnector, &connector::sendCmd);
     this->thread->start();
 }
-void esp32Connector::roomBtnClick()
-{
-
-}
-
 
 void esp32Connector::startEnd()
 {
