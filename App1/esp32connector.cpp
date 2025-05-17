@@ -213,15 +213,17 @@ void connector::handleStartRoom()
     this->usedTime = QTime(0,0,0);
     QTime currentTime = QTime::currentTime();
     this->mParent->setTimeStart(currentTime.toString());
-    this->mParent->mDataBaseController->mDatabaseConnector->insertDataToDb(this->mParent->getRoomInfor("name"),
-                                                                           this->mParent->timeStart(),"caculating","caculating");
+    emit this->mParent->mDataBaseController->insertDataToDb(this->mParent->getRoomInfor("name"),
+                                                            this->mParent->timeStart(),"caculating","caculating");
 }
 void connector::handleEndedRoom()
 {
     if(this->mParent->timeStart() != QTime(0,0,0).toString()){
         QTime currentTime = QTime::currentTime();
         this->mParent->setTimeEnd(currentTime.toString());
-        //handle update to database here
+        emit this->mParent->mDataBaseController->insertDataToDb(this->mParent->getRoomInfor("name"),
+                                                                this->mParent->timeStart(),this->mParent->timeEnd(),
+                                                                this->usedTime.toString());
     }
     else{
         qDebug() <<  mParent->name+": First time read status skip set time end";

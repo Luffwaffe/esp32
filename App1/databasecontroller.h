@@ -40,6 +40,7 @@ public:
     explicit dataBaseController(QObject *parent = nullptr);
 
 signals:
+    void insertDataToDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime);
 };
 
 #endif // DATABASECONTROLLER_H

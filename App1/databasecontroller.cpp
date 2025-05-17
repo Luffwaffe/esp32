@@ -57,6 +57,7 @@ dataBaseController::dataBaseController(QObject *parent)
     this->thread = new QThread();
     this->mDatabaseConnector->moveToThread(this->thread);
     QObject::connect(thread, &QThread::started, mDatabaseConnector, &databaseConnector::initializeDatabaseConnection);
+    QObject::connect(this, &dataBaseController::insertDataToDb, mDatabaseConnector, &databaseConnector::insertDataToDb,Qt::QueuedConnection);
     this->thread->start();
 }
 
