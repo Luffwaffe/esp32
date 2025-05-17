@@ -13,18 +13,16 @@ void connector::initializeSocket()
     discoverSocket->bind(0);
 
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
-        qDebug() << mParent->name + ": Connected to server!";
+        qDebug() << mParent->name + ": Connected to TCP Esp32!";
         this->sendCmd(getRunningStatusCmd);
     });
     connect(mainSocket, &QTcpSocket::disconnected, this, [&]() {
-        qDebug() << mParent->name + ": Disconnected to server!";
+        qDebug() << mParent->name + ": Disconnected to TCP Esp32, re-connect now...!";
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
     });
 
-    while (connectToRoom() != true) {
-         qDebug() << mParent->name+ ": Try to connect to server!";
-    }
+    tryToConnect();
     heartBeat();
 }
 
@@ -41,10 +39,10 @@ bool connector::connectToRoom()
 
             discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
 
-            qDebug() << this->mParent->getRoomInfor("name") +": Received datagram: " << datagram;
+            qDebug() << this->mParent->getRoomInfor("name") +": Received UDP message from Esp32: " << datagram;
 
             if (datagram == this->mParent->getRoomInfor("name")){
-                qDebug() << this->mParent->getRoomInfor("name") + ": discovered at: " << sender.toString();
+                qDebug() << this->mParent->getRoomInfor("name") + ": discovered Esp32 at: " << sender.toString();
                 this->mParent->address = sender.toString();
                 //TCP
                 this->mainSocket->connectToHost(mParent->address, mParent->port);
@@ -52,17 +50,17 @@ bool connector::connectToRoom()
                     retval = true;
                 }
                 else{
-                    qDebug() << mParent->name+ ": Failed to connect to TCP server!";
+                    qDebug() << mParent->name+ ": Failed to connect to TCP Esp32!";
                 }
             }
         }
         else{
-            qDebug() << mParent->name+ ": Failed to connect to UDP server!";
+            qDebug() << mParent->name+ ": Failed to connect to UDP Esp32!";
             QThread::sleep(1);
         }
     }
     else {
-        qDebug() << mParent->name+ ": Failed to write to UDP server!";
+        qDebug() << mParent->name+ ": Failed to write to UDP Esp32!";
         QThread::sleep(1);
     }
     return retval;
@@ -73,19 +71,26 @@ void connector::tryToConnect()
     if (mainSocket) {
         mainSocket->deleteLater();
     }
+    if (discoverSocket) {
+        discoverSocket->deleteLater();
+    }
     mainSocket = new QTcpSocket(this);
+    discoverSocket = new QUdpSocket(this);
+    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 0);
+    discoverSocket->bind(0);
+
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
-        qDebug() << mParent->name + ": Connected to server!";
+        qDebug() << mParent->name + ": Connected to TCP Esp32!";
         this->sendCmd(getRunningStatusCmd);
     });
     connect(mainSocket, &QTcpSocket::disconnected, this, [&]() {
-        qDebug() << mParent->name + ": Disconnected to server!";
+        qDebug() << mParent->name + ": Disconnected to TCP Esp32 re-connect now...!";
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
     });
 
     while (true) {
-        qDebug() << mParent->name + ": Try to connect to server!";
+        qDebug() << mParent->name + ": Try to connect to Esp32!";
         if(this->connectToRoom()){
             break;
         }
@@ -97,11 +102,11 @@ bool connector::writeDataToRoom(QString data)
     bool retval = false;
     this->mainSocket->write(data.toUtf8());
     if(mainSocket->waitForBytesWritten(1000)){
-        qDebug() << this->mParent->getRoomInfor("name") + ": Successfully wrote: " + data;
+        qDebug() << this->mParent->getRoomInfor("name") + ": Successfully wrote to TCP Esp32: " + data;
         retval =  true;
     }
     else {
-        qDebug() << mParent->name+"Write failed:" << this->mainSocket->errorString();
+        qDebug() << mParent->name+"Write failed to TCP Esp32:" << this->mainSocket->errorString();
     }
     return retval;
 }
@@ -112,7 +117,7 @@ QString connector::readDataFromRoom()
     if (this->mainSocket->waitForReadyRead(1000)){
         data = QString::fromUtf8(this->mainSocket->readAll());
         if(data != ""){
-            qDebug() << mParent->name+": Received data from:"+": "+ data;
+            qDebug() << mParent->name+": Received data from TCP Esp32"+": "+ data;
             this->handleResponseFromRoom(data);
         }
     }
@@ -148,10 +153,12 @@ void connector::heartBeat(){
     static int tryTime = 0;
     heartbeat = new QTimer(this);
     connect(heartbeat, &QTimer::timeout, this, [=]() mutable {
-        qDebug()<<this->mParent->name+": "+"Heartbeat";
-        // this->sendCmd(getRunningStatusCmd);
-        if(!this->isDisconnectFromPeer()){
-            emit this->mainSocket->disconnected();
+        qDebug()<<this->mParent->name+": "+"Heartbeat to Esp32";
+        if(this->isDisconnectFromPeer()){
+            mainSocket->disconnectFromHost();
+            if (mainSocket->state() != QAbstractSocket::UnconnectedState) {
+                mainSocket->waitForDisconnected();  // optional: block until fully disconnected
+            }
         }
         /////////////////////Handle store data
         if(this->mParent->runningStatus() == startedStatus){
@@ -173,18 +180,18 @@ void connector::heartBeat(){
 
 bool connector::isDisconnectFromPeer()
 {
-    bool retVal = false;
+    bool retVal = true;
     if(this->writeDataToRoom(getRunningStatusCmd) == true){
         if (this->mainSocket->waitForReadyRead(2000)){
             auto data = QString::fromUtf8(this->mainSocket->readAll());
             if(data != ""){
-                qDebug() << mParent->name+": Received data from:"+": "+ data;
+                qDebug() << mParent->name+": Received data from TCP Esp32"+": "+ data;
                 this->handleResponseFromRoom(data);
-                retVal = true;
+                retVal = false;
             }
         }
         else{
-            qDebug() <<  mParent->name+": Disconnected from peer";
+            qDebug() <<  mParent->name+": Disconnected from Esp32";
         }
     }
     return retVal;
@@ -215,7 +222,7 @@ void esp32Connector::startEnd()
         // handleUsedTimeAndUpdateStartStopTime(startCmd); //start used time timer and update start time as current time (keep end time)
     }
     else if(this->runningStatus() == notConnectStatus){
-        qDebug()<<this->name+ ": "+"No connection";
+        qDebug()<<this->name+ ": "+"No Esp32 connection";
     }
 }
 
