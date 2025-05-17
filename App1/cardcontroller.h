@@ -25,7 +25,6 @@ public:
     cardReader(QObject* parent);
 public slots:
     void initializeCardConnection();
-    // void tryToConnect();
     QString handleCard();
     bool checkPortConnection();
 public:

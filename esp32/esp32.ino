@@ -61,10 +61,11 @@ void controlRoom(String cmd){
     int pinStatus = digitalRead(CONTROL_PIN);
     if (pinStatus == HIGH) {
         client.print("started");
+        Serial.print("Replyed: started\n");
     } else {
         client.print("ended");
+        Serial.print("Replyed: ended\n");
     }
-    Serial.print("REPLYED getRunningStatus OK\n");
   }
 }
 

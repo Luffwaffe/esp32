@@ -1,5 +1,4 @@
 #include "cardcontroller.h"
-
 cardReader::cardReader(QObject *parent)
 {
     this ->mParent = dynamic_cast<cardController*>(parent);

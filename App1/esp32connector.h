@@ -19,6 +19,8 @@ public:
     QUdpSocket *discoverSocket;
     connector(QObject* parent);
     QTimer* heartbeat;
+    QTimer* usedTimeTimer;
+    QTime usedTime = QTime(0, 0, 0);
 public slots:
     void initializeSocket();
     bool connectToRoom();
@@ -29,6 +31,8 @@ public slots:
     void handleResponseFromRoom(QString rep);
     void heartBeat();
     bool isDisconnectFromPeer();
+    void handleStartRoom();
+    void handleEndedRoom();
 public:
     esp32Connector* mParent = nullptr;
 };

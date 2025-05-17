@@ -20,7 +20,7 @@ void connector::initializeSocket()
         qDebug() << mParent->name + ": Disconnected to TCP Esp32, re-connect now...!";
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
-    });
+    },Qt::QueuedConnection);
 
     tryToConnect();
     heartBeat();
@@ -87,7 +87,7 @@ void connector::tryToConnect()
         qDebug() << mParent->name + ": Disconnected to TCP Esp32 re-connect now...!";
         this->handleResponseFromRoom(notConnectStatus);
         tryToConnect();
-    });
+    },Qt::QueuedConnection);
 
     while (true) {
         qDebug() << mParent->name + ": Try to connect to Esp32!";
@@ -140,12 +140,15 @@ void connector::handleResponseFromRoom(QString rep)
 {
     if(rep == notConnectStatus){
         mParent->setRunningStatus(rep);
+        handleEndedRoom();
     }
     else if(rep == startedStatus){
         mParent->setRunningStatus(rep);
+        handleStartRoom();
     }
     else if(rep == endStatus){
         mParent->setRunningStatus(rep);
+        handleEndedRoom();
     }
 }
 
@@ -153,29 +156,33 @@ void connector::heartBeat(){
     static int tryTime = 0;
     heartbeat = new QTimer(this);
     connect(heartbeat, &QTimer::timeout, this, [=]() mutable {
-        qDebug()<<this->mParent->name+": "+"Heartbeat to Esp32";
-        if(this->isDisconnectFromPeer()){
-            mainSocket->disconnectFromHost();
-            if (mainSocket->state() != QAbstractSocket::UnconnectedState) {
-                mainSocket->waitForDisconnected();  // optional: block until fully disconnected
+        static int index = 0;
+        index ++;
+        ///////////////////////check connection
+        if(index%5 == 0){
+            qDebug()<<this->mParent->name+": "+"Heartbeat to Esp32";
+            if(this->isDisconnectFromPeer()){
+                mainSocket->disconnectFromHost();
+                if (mainSocket->state() != QAbstractSocket::UnconnectedState) {
+                    mainSocket->waitForDisconnected();
+                }
             }
         }
-        /////////////////////Handle store data
+        ////////////////////Handle used time counting
         if(this->mParent->runningStatus() == startedStatus){
-            qDebug()<<this->mParent->name+": "+"update used time";
-            QTime current = QTime::currentTime();
-            QTime startTime = QTime::fromString(this->mParent->timeStart(), "HH:mm:ss");
+            qDebug()<<this->mParent->getRoomInfor("name")+": "+"counting used time";
+            usedTime = usedTime.addSecs(1);
+            this->mParent->setTimeRemainning(usedTime.toString());
 
-            int secondsUsing = startTime.secsTo(current);
-            if (secondsUsing < 0) {
-                qDebug() << mParent->name+": current time is before start time (maybe it's for the next day).";
-                secondsUsing += 24 * 60 * 60;
+            /// write to datdbase each 60s
+            if(index == 60){
+                index = 0;
+                qDebug()<<this->mParent->getRoomInfor("name")+": "+"update to database";
             }
-            QString usingTime = QTime(0, 0).addSecs(secondsUsing).toString();
         }
         ////////////////////////////////////////
     });
-    heartbeat->start(3000); // Tick every 3 second
+    heartbeat->start(1000); // Tick every 3 second
 }
 
 bool connector::isDisconnectFromPeer()
@@ -197,6 +204,20 @@ bool connector::isDisconnectFromPeer()
     return retVal;
 }
 
+void connector::handleStartRoom()
+{
+    // this->usedTimeTimer->start(1000);
+    //handle update to database here
+}
+
+void connector::handleEndedRoom()
+{
+    // this->usedTimeTimer->stop();
+    this->usedTime = QTime(0,0,0);
+    this->mParent->setTimeRemainning(usedTime.toString());
+    //handle update to database here
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 esp32Connector::esp32Connector(QString name, QString address, quint16 port) {
     this->name = name;
@@ -205,6 +226,7 @@ esp32Connector::esp32Connector(QString name, QString address, quint16 port) {
     this->setRunningStatus(notConnectStatus);
     this->mConnector = new connector(this);
     this->thread = new QThread;
+
     this->mConnector->moveToThread(this->thread);
     QObject::connect(thread, &QThread::started, mConnector, &connector::initializeSocket);
     QObject::connect(this,&esp32Connector::sendCmd, mConnector, &connector::sendCmd);
