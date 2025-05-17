@@ -482,8 +482,7 @@ Window {
 
                 Text {
                     id: timeStart
-                    text: (roomInforRec.roomModel && roomInforRec.roomModel.runningStatus === "started")?
-                              "Start time: " + roomInforRec.roomModel.timeStart : "Start time: 00:00:00"
+                    text:"Start time: " + roomInforRec.roomModel.timeStart
                     font.pixelSize: 25
                     font.bold: true
                     color:  !roomInforRec.roomModel ? "grey" :
@@ -501,7 +500,7 @@ Window {
                 Text {
                     id: timeEnd
                     text: (roomInforRec.roomModel && roomInforRec.roomModel.runningStatus === "started")?
-                              "End time: " + roomInforRec.roomModel.timeEnd: "End time: 00:00:00"
+                              "End time: Counting..." : "End time: " + roomInforRec.roomModel.timeEnd
                     font.pixelSize: 25
                     font.bold: true
                     color:  !roomInforRec.roomModel ? "grey" :
@@ -518,8 +517,7 @@ Window {
 
                 Text {
                     id: timeRemain
-                    text: (roomInforRec.roomModel && roomInforRec.roomModel.runningStatus === "started")?
-                              "Used time: " + roomInforRec.roomModel.timeRemainning: "Used time: 00:00:00"
+                    text: "Used time: " + roomInforRec.roomModel.timeRemainning
                     font.pixelSize: 25
                     font.bold: true
                     color:  !roomInforRec.roomModel ? "grey" :

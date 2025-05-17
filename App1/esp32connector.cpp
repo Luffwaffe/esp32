@@ -124,14 +124,21 @@ QString connector::readDataFromRoom()
     else{
         data = "ERROR";
     }
-    return "data";
+    return data;
 }
 
 QString connector::sendCmd(QString cmd)
 {
     QString rep;
     if(this->writeDataToRoom(cmd) == true){
-        this->readDataFromRoom();
+        rep = this->readDataFromRoom();
+    }
+
+    if(rep == endStatus){
+        handleEndedRoom();
+    }
+    else if(rep == startedStatus){
+        handleStartRoom();
     }
     return rep;
 }
@@ -140,15 +147,12 @@ void connector::handleResponseFromRoom(QString rep)
 {
     if(rep == notConnectStatus){
         mParent->setRunningStatus(rep);
-        handleEndedRoom();
     }
     else if(rep == startedStatus){
         mParent->setRunningStatus(rep);
-        handleStartRoom();
     }
     else if(rep == endStatus){
         mParent->setRunningStatus(rep);
-        handleEndedRoom();
     }
 }
 
@@ -206,16 +210,22 @@ bool connector::isDisconnectFromPeer()
 
 void connector::handleStartRoom()
 {
-    // this->usedTimeTimer->start(1000);
+    this->usedTime = QTime(0,0,0);
+    QTime currentTime = QTime::currentTime();
+    this->mParent->setTimeStart(currentTime.toString());
     //handle update to database here
 }
 
 void connector::handleEndedRoom()
 {
-    // this->usedTimeTimer->stop();
-    this->usedTime = QTime(0,0,0);
-    this->mParent->setTimeRemainning(usedTime.toString());
-    //handle update to database here
+    if(this->mParent->timeStart() != QTime(0,0,0).toString()){
+        QTime currentTime = QTime::currentTime();
+        this->mParent->setTimeEnd(currentTime.toString());
+        //handle update to database here
+    }
+    else{
+        qDebug() <<  mParent->name+": First time read status skip set time end";
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -224,6 +234,9 @@ esp32Connector::esp32Connector(QString name, QString address, quint16 port) {
     this->address = address;
     this->port = port;
     this->setRunningStatus(notConnectStatus);
+    this->setTimeStart(QTime(0,0,0).toString());
+    this->setTimeEnd(QTime(0,0,0).toString());
+    this->setTimeRemainning(QTime(0,0,0).toString());
     this->mConnector = new connector(this);
     this->thread = new QThread;
 
