@@ -4,6 +4,7 @@
 #include <QQmlContext>
 #include <cardcontroller.h>
 #include "cmdAndStatus.h"
+#include "databasecontroller.h"
 
 int main(int argc, char *argv[])
 {
@@ -11,10 +12,12 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
+    //database
+    dataBaseController* mDataBaseController = new dataBaseController();
     // model
-    esp32Connector* room1 = new esp32Connector("Room1","192.168.1.1", 12345);
+    esp32Connector* room1 = new esp32Connector("Room1", mDataBaseController, 12345);
     engine.rootContext()->setContextProperty("room1model", room1);
-    // esp32Connector* room2 = new esp32Connector("Room2","192.168.1.1", 12345);
+    // esp32Connector* room2 = new esp32Connector("Room2", mDataBaseController, 12345);
     // engine.rootContext()->setContextProperty("room2model", room2);
 
     //card controller

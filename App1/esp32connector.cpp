@@ -213,9 +213,9 @@ void connector::handleStartRoom()
     this->usedTime = QTime(0,0,0);
     QTime currentTime = QTime::currentTime();
     this->mParent->setTimeStart(currentTime.toString());
-    //handle update to database here
+    this->mParent->mDataBaseController->mDatabaseConnector->insertDataToDb(this->mParent->getRoomInfor("name"),
+                                                                           this->mParent->timeStart(),"caculating","caculating");
 }
-
 void connector::handleEndedRoom()
 {
     if(this->mParent->timeStart() != QTime(0,0,0).toString()){
@@ -229,9 +229,9 @@ void connector::handleEndedRoom()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-esp32Connector::esp32Connector(QString name, QString address, quint16 port) {
+esp32Connector::esp32Connector(QString name, dataBaseController* dataBaseController, quint16 port) {
     this->name = name;
-    this->address = address;
+    this->mDataBaseController = dataBaseController;
     this->port = port;
     this->setRunningStatus(notConnectStatus);
     this->setTimeStart(QTime(0,0,0).toString());

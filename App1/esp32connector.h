@@ -9,6 +9,7 @@
 #include<QTime>
 #include <QFile>
 #include <QUdpSocket>
+#include "databasecontroller.h"
 
 class esp32Connector;
 class connector : public QObject
@@ -44,17 +45,18 @@ class esp32Connector : public QObject
 
 public:
     QString name;
-    QString address;
+    QString address = "192.168.1.1";
     quint16 port;
     QThread* thread;
     connector* mConnector = nullptr;
+    dataBaseController* mDataBaseController = nullptr;
 
     Q_PROPERTY(QString runningStatus READ runningStatus WRITE setRunningStatus NOTIFY runningStatusChanged FINAL)
     Q_PROPERTY(QString timeStart READ timeStart WRITE setTimeStart NOTIFY timeStartChanged FINAL)
     Q_PROPERTY(QString timeEnd READ timeEnd WRITE setTimeEnd NOTIFY timeEndChanged FINAL)
     Q_PROPERTY(QString timeRemainning READ timeRemainning WRITE setTimeRemainning NOTIFY timeRemainningChanged FINAL)
 
-    esp32Connector(QString name, QString address, quint16 port);
+    esp32Connector(QString name, dataBaseController* dataBaseController, quint16 port);
 
     Q_INVOKABLE void startEnd();
     Q_INVOKABLE QString getRoomInfor(QString infor);
