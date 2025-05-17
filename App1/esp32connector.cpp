@@ -133,13 +133,6 @@ QString connector::sendCmd(QString cmd)
     if(this->writeDataToRoom(cmd) == true){
         rep = this->readDataFromRoom();
     }
-
-    if(rep == endStatus){
-        handleEndedRoom();
-    }
-    else if(rep == startedStatus){
-        handleStartRoom();
-    }
     return rep;
 }
 
@@ -150,9 +143,11 @@ void connector::handleResponseFromRoom(QString rep)
     }
     else if(rep == startedStatus){
         mParent->setRunningStatus(rep);
+        handleStartRoom();
     }
     else if(rep == endStatus){
         mParent->setRunningStatus(rep);
+        handleEndedRoom();
     }
 }
 
@@ -181,7 +176,10 @@ void connector::heartBeat(){
             /// write to datdbase each 60s
             if(index == 60){
                 index = 0;
-                qDebug()<<this->mParent->getRoomInfor("name")+": "+"update to database";
+                qDebug()<<this->mParent->getRoomInfor("name")+": "+"update  heartbear data to database";
+                emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
+                                                                        this->mParent->timeStart(),QTime::currentTime().toString(),
+                                                                        this->usedTime.toString(),this->mParent->runningStatus());
             }
         }
         ////////////////////////////////////////
@@ -197,7 +195,7 @@ bool connector::isDisconnectFromPeer()
             auto data = QString::fromUtf8(this->mainSocket->readAll());
             if(data != ""){
                 qDebug() << mParent->name+": Received data from TCP Esp32"+": "+ data;
-                this->handleResponseFromRoom(data);
+                mParent->setRunningStatus(data);
                 retVal = false;
             }
         }
@@ -215,6 +213,9 @@ void connector::handleStartRoom()
     this->mParent->setTimeStart(currentTime.toString());
     emit this->mParent->mDataBaseController->insertDataToDb(this->mParent->getRoomInfor("name"),
                                                             this->mParent->timeStart(),"caculating","caculating");
+    emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
+                                                                     this->mParent->timeStart(),QTime::currentTime().toString(),
+                                                                     this->usedTime.toString(),this->mParent->runningStatus());
 }
 void connector::handleEndedRoom()
 {
@@ -224,6 +225,9 @@ void connector::handleEndedRoom()
         emit this->mParent->mDataBaseController->insertDataToDb(this->mParent->getRoomInfor("name"),
                                                                 this->mParent->timeStart(),this->mParent->timeEnd(),
                                                                 this->usedTime.toString());
+        emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
+                                                                         this->mParent->timeStart(),QTime::currentTime().toString(),
+                                                                         this->usedTime.toString(),this->mParent->runningStatus());
     }
     else{
         qDebug() <<  mParent->name+": First time read status skip set time end";
@@ -252,11 +256,9 @@ void esp32Connector::startEnd()
 {
     if(this->runningStatus() == startedStatus){
         emit this->sendCmd(endCmd);
-        // handleUsedTimeAndUpdateStartStopTime(endCmd); //stop used time timer and update end time (keep start time)
     }
     else if(this->runningStatus() == endStatus){
         emit this->sendCmd(startCmd);
-        // handleUsedTimeAndUpdateStartStopTime(startCmd); //start used time timer and update start time as current time (keep end time)
     }
     else if(this->runningStatus() == notConnectStatus){
         qDebug()<<this->name+ ": "+"No Esp32 connection";

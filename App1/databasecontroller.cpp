@@ -23,11 +23,25 @@ void databaseConnector::initializeDatabaseConnection()
         "endTime TEXT, "
         "usedTime TEXT"
         ");";
-
     if (!query.exec(createTable)) {
         qDebug() << "DB: Failed to create table:" << query.lastError().text();
     } else {
         qDebug() << "DB: Table 'roomStartEndDb' created OK.";
+    }
+
+    query.clear();
+    createTable =
+        "CREATE TABLE IF NOT EXISTS roomStartEndPowerDownDb ("
+        "room TEXT, "
+        "startTime TEXT, "
+        "endTime TEXT, "
+        "usedTime TEXT,"
+        "status TEXT"
+        ");";
+    if (!query.exec(createTable)) {
+        qDebug() << "DB: Failed to create table:" << query.lastError().text();
+    } else {
+        qDebug() << "DB: Table 'roomStartEndPowerDownDb' created OK.";
     }
 }
 
@@ -48,6 +62,26 @@ void databaseConnector::insertDataToDb(QString roomName, QString timeStart, QStr
     }
 }
 
+void databaseConnector::updateDataToPowerDownDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime, QString status)
+{
+    QSqlQuery query(db);
+    query.prepare("UPDATE roomStartEndPowerDownDb "
+                  "SET startTime = ?, endTime = ?, usedTime = ?, status = ? "
+                  "WHERE room = ?");
+
+    query.addBindValue(timeStart);
+    query.addBindValue(timeEnd);
+    query.addBindValue(usedTime);
+    query.addBindValue(status);
+    query.addBindValue(roomName);
+
+    if (!query.exec()) {
+        qDebug() << "DB: Update PowerDown Db failed:" << query.lastError().text();
+    }
+
+    qDebug() << "DB: Update PowerDown Db successfully:";
+}
+
 
 ///////////////////////////////////////////////////////////////
 dataBaseController::dataBaseController(QObject *parent)
@@ -58,6 +92,7 @@ dataBaseController::dataBaseController(QObject *parent)
     this->mDatabaseConnector->moveToThread(this->thread);
     QObject::connect(thread, &QThread::started, mDatabaseConnector, &databaseConnector::initializeDatabaseConnection);
     QObject::connect(this, &dataBaseController::insertDataToDb, mDatabaseConnector, &databaseConnector::insertDataToDb,Qt::QueuedConnection);
+    QObject::connect(this, &dataBaseController::updateDataToPowerDownDb, mDatabaseConnector, &databaseConnector::updateDataToPowerDownDb,Qt::QueuedConnection);
     this->thread->start();
 }
 

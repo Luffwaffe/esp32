@@ -25,6 +25,7 @@ public:
 public slots:
     void initializeDatabaseConnection();
     void insertDataToDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime);
+    void updateDataToPowerDownDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime, QString status);
 public:
     dataBaseController* mParent = nullptr;
 };
@@ -37,10 +38,12 @@ class dataBaseController : public QObject
 public:
     QThread* thread;
     databaseConnector* mDatabaseConnector = nullptr;
+    ///////////////////////////////////////////////////////////////
     explicit dataBaseController(QObject *parent = nullptr);
 
 signals:
     void insertDataToDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime);
+    void updateDataToPowerDownDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime, QString status);
 };
 
 #endif // DATABASECONTROLLER_H
