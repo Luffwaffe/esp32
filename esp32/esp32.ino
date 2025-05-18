@@ -77,14 +77,17 @@ void handleTCPClient() {
     if (client) {
       Serial.println("PC connected!");
       while (client.connected()) {
-        if (client.available()) {
+          client.setTimeout(10000);
           String data = client.readStringUntil('\n');
-          Serial.print("Received: ");
-          Serial.println(data);
-          controlRoom(data);
-        }
-        else{
-        }
+          if (!data.length() == 0) {
+            Serial.print("Received: ");
+            Serial.println(data);
+            controlRoom(data);
+          }
+          else{
+            Serial.println("Connection timeout, Client disconnected");
+            break;
+          }
       }
       client.stop();
       Serial.println("Client disconnected, Listening for UDP broadcast message again...");
