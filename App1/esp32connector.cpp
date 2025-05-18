@@ -93,11 +93,6 @@ void connector::getFirstConnectStatus(QString cmd)
     if(this->writeDataToRoom(cmd) == true){
         if (this->mainSocket->waitForReadyRead(2000)){
             auto data = QString::fromUtf8(this->mainSocket->readAll());
-            if(data == startedStatus){
-                qDebug() << mParent->name+": First connect status data from TCP Esp32"+": "+ data;
-                this->firstConnectionStatus = rep;
-                this->handleResponseFromRoom(data);
-            }
             if(data == endStatus){
                 qDebug() << mParent->name+": First connect status data from TCP Esp32"+": "+ data;
                 this->firstConnectionStatus = rep;
@@ -116,7 +111,7 @@ void connector::getFirstConnectStatus(QString cmd)
                 }
             }
             else if(data == startedStatus){
-                qDebug() <<  mParent->name+": Power down detected, recover data...";
+                qDebug() <<  mParent->name+": App down detected, recover data...";
                 this->firstConnectionStatus = rep;
 
                 QString timeStart; QString timeEnd; QString usedTime; QString status;
