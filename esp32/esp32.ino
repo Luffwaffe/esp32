@@ -5,10 +5,10 @@
 
 // BOM MUSIC BOX
 // 66668888
-// const char* ssid = "NAVY_FAST_5G"; 
-// const char* password = "12345678";
-const char* ssid = "FPT Thanh Duyen"; 
-const char* password = "27061994";
+const char* ssid = "NAVY_FAST_5G"; 
+const char* password = "12345678";
+// const char* ssid = "FPT Thanh Duyen"; 
+// const char* password = "27061994";
 String localIp;
 const char* name = "Room1";
 

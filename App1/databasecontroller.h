@@ -13,6 +13,7 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QMutex>
 
 class dataBaseController;
 
@@ -21,7 +22,9 @@ class databaseConnector : public QObject
     Q_OBJECT
 public:
     QSqlDatabase db;
+    QMutex mutex;
     databaseConnector(QObject* parent);
+    void getPowerDownInformation(QString roomName, QString* timeStart, QString* timeEnd, QString* usedTime, QString* status); // roomName is input, others are output
 public slots:
     void initializeDatabaseConnection();
     void insertDataToDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime);
@@ -38,12 +41,13 @@ class dataBaseController : public QObject
 public:
     QThread* thread;
     databaseConnector* mDatabaseConnector = nullptr;
-    ///////////////////////////////////////////////////////////////
     explicit dataBaseController(QObject *parent = nullptr);
 
 signals:
     void insertDataToDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime);
     void updateDataToPowerDownDb(QString roomName, QString timeStart, QString timeEnd, QString usedTime, QString status);
+    void getPowerDownInformation(QString roomName, QString* timeStart, QString* timeEnd, QString* usedTime, QString* status);
+
 };
 
 #endif // DATABASECONTROLLER_H

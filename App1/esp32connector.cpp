@@ -11,17 +11,6 @@ void connector::initializeSocket()
     discoverSocket = new QUdpSocket(this);
     this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 0);
     discoverSocket->bind(0);
-
-    connect(mainSocket, &QTcpSocket::connected, this, [&]() {
-        qDebug() << mParent->name + ": Connected to TCP Esp32!";
-        this->sendCmd(getRunningStatusCmd);
-    });
-    connect(mainSocket, &QTcpSocket::disconnected, this, [&]() {
-        qDebug() << mParent->name + ": Disconnected to TCP Esp32, re-connect now...!";
-        this->handleResponseFromRoom(notConnectStatus);
-        tryToConnect();
-    },Qt::QueuedConnection);
-
     tryToConnect();
     heartBeat();
 }
@@ -81,7 +70,7 @@ void connector::tryToConnect()
 
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
         qDebug() << mParent->name + ": Connected to TCP Esp32!";
-        this->sendCmd(getRunningStatusCmd);
+        this->getFirstConnectStatus(getRunningStatusCmd);
     });
     connect(mainSocket, &QTcpSocket::disconnected, this, [&]() {
         qDebug() << mParent->name + ": Disconnected to TCP Esp32 re-connect now...!";
@@ -93,6 +82,60 @@ void connector::tryToConnect()
         qDebug() << mParent->name + ": Try to connect to Esp32!";
         if(this->connectToRoom()){
             break;
+        }
+    }
+}
+
+void connector::getFirstConnectStatus(QString cmd)
+{
+    qDebug() <<  mParent->name+": getFirstConnectStatus";
+    QString rep;
+    if(this->writeDataToRoom(cmd) == true){
+        if (this->mainSocket->waitForReadyRead(2000)){
+            auto data = QString::fromUtf8(this->mainSocket->readAll());
+            if(data == startedStatus){
+                qDebug() << mParent->name+": First connect status data from TCP Esp32"+": "+ data;
+                this->firstConnectionStatus = rep;
+                this->handleResponseFromRoom(data);
+            }
+            if(data == endStatus){
+                qDebug() << mParent->name+": First connect status data from TCP Esp32"+": "+ data;
+                this->firstConnectionStatus = rep;
+
+                QString timeStart; QString timeEnd; QString usedTime; QString status;
+                this->mParent->mDataBaseController->mDatabaseConnector->getPowerDownInformation(this->mParent->getRoomInfor("name"),&timeStart, &timeEnd, &usedTime, &status);
+
+                if(status == startedStatus){ // case room is error, power down
+                    this->mParent->setTimeStart(timeStart);
+                    this->mParent->setTimeEnd(timeEnd);
+                    this->mParent->setTimeRemainning(usedTime);
+
+                }
+                else if(status == endStatus){
+                    qDebug() <<  mParent->name+": First time read status or reconnect with ended room already, skip set time end";
+                }
+            }
+            else if(data == startedStatus){
+                qDebug() <<  mParent->name+": Power down detected, recover data...";
+                this->firstConnectionStatus = rep;
+
+                QString timeStart; QString timeEnd; QString usedTime; QString status;
+                this->mParent->mDataBaseController->mDatabaseConnector->getPowerDownInformation(this->mParent->getRoomInfor("name"),&timeStart, &timeEnd, &usedTime, &status);
+                if(status == startedStatus){
+                    this->mParent->setTimeStart(timeStart);
+                    int mUsedTime = QTime::fromString(timeStart).secsTo(QTime::currentTime());
+                    if (mUsedTime < 0) {
+                        qDebug() << mParent->name+": End time is before start time (maybe it's for the next day).";
+                        mUsedTime += 24 * 60 * 60;
+                    }
+                    auto realUsedTime = QTime(0, 0).addSecs(mUsedTime);
+                    this->usedTime = realUsedTime;
+                    this->mParent->setTimeRemainning(this->usedTime.toString());
+                    emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
+                                                                                     this->mParent->timeStart(),QTime::currentTime().toString(),
+                                                                                     this->usedTime.toString(),this->mParent->runningStatus());
+                }
+            }
         }
     }
 }
@@ -174,9 +217,9 @@ void connector::heartBeat(){
             this->mParent->setTimeRemainning(usedTime.toString());
 
             /// write to datdbase each 60s
-            if(index == 60){
+            if(index >= 60){
                 index = 0;
-                qDebug()<<this->mParent->getRoomInfor("name")+": "+"update  heartbear data to database";
+                qDebug()<<this->mParent->getRoomInfor("name")+": "+"update  heartbeat data to database";
                 emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
                                                                         this->mParent->timeStart(),QTime::currentTime().toString(),
                                                                         this->usedTime.toString(),this->mParent->runningStatus());
@@ -194,13 +237,13 @@ bool connector::isDisconnectFromPeer()
         if (this->mainSocket->waitForReadyRead(2000)){
             auto data = QString::fromUtf8(this->mainSocket->readAll());
             if(data != ""){
-                qDebug() << mParent->name+": Received data from TCP Esp32"+": "+ data;
+                qDebug() << mParent->name+": Heartbeat: received data from TCP Esp32"+": "+ data;
                 mParent->setRunningStatus(data);
                 retVal = false;
             }
         }
         else{
-            qDebug() <<  mParent->name+": Disconnected from Esp32";
+            qDebug() <<  mParent->name+": Heartbeat: disconnected from Esp32";
         }
     }
     return retVal;
@@ -208,6 +251,8 @@ bool connector::isDisconnectFromPeer()
 
 void connector::handleStartRoom()
 {
+    QString timeStart; QString timeEnd; QString usedTime; QString status;
+    this->mParent->mDataBaseController->mDatabaseConnector->getPowerDownInformation(this->mParent->getRoomInfor("name"),&timeStart, &timeEnd, &usedTime, &status);
     this->usedTime = QTime(0,0,0);
     QTime currentTime = QTime::currentTime();
     this->mParent->setTimeStart(currentTime.toString());
@@ -219,19 +264,16 @@ void connector::handleStartRoom()
 }
 void connector::handleEndedRoom()
 {
-    if(this->mParent->timeStart() != QTime(0,0,0).toString()){
-        QTime currentTime = QTime::currentTime();
-        this->mParent->setTimeEnd(currentTime.toString());
-        emit this->mParent->mDataBaseController->insertDataToDb(this->mParent->getRoomInfor("name"),
-                                                                this->mParent->timeStart(),this->mParent->timeEnd(),
-                                                                this->usedTime.toString());
-        emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
-                                                                         this->mParent->timeStart(),QTime::currentTime().toString(),
+    QString timeStart; QString timeEnd; QString usedTime; QString status;
+    this->mParent->mDataBaseController->mDatabaseConnector->getPowerDownInformation(this->mParent->getRoomInfor("name"),&timeStart, &timeEnd, &usedTime, &status);
+    QTime currentTime = QTime::currentTime();
+    this->mParent->setTimeEnd(currentTime.toString());
+    emit this->mParent->mDataBaseController->insertDataToDb(this->mParent->getRoomInfor("name"),
+                                                            this->mParent->timeStart(),this->mParent->timeEnd(),
+                                                            this->usedTime.toString());
+    emit this->mParent->mDataBaseController->updateDataToPowerDownDb(this->mParent->getRoomInfor("name"),
+                                                                     this->mParent->timeStart(),QTime::currentTime().toString(),
                                                                          this->usedTime.toString(),this->mParent->runningStatus());
-    }
-    else{
-        qDebug() <<  mParent->name+": First time read status skip set time end";
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

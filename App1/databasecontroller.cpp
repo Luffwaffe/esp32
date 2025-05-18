@@ -82,6 +82,32 @@ void databaseConnector::updateDataToPowerDownDb(QString roomName, QString timeSt
     qDebug() << "DB: Update PowerDown Db successfully:";
 }
 
+void databaseConnector::getPowerDownInformation(QString roomName, QString *timeStart, QString *timeEnd, QString *usedTime, QString *status)
+{
+    mutex.lock();
+    QSqlQuery query(db);
+    query.prepare(R"(
+        SELECT room, startTime, endTime, usedTime, status
+        FROM roomStartEndPowerDownDb
+        WHERE room = :roomName
+    )");
+    query.bindValue(":roomName", roomName);
+    if (!query.exec()) {
+        qDebug() << "Query error:" << query.lastError().text();
+    }
+    else {
+        while (query.next()) {
+            QString room      = query.value("room").toString();
+            *timeStart = query.value("startTime").toString();
+            *timeEnd   = query.value("endTime").toString();
+            *usedTime  = query.value("usedTime").toString();
+            *status = query.value("status").toString();
+            qDebug() <<"DB: Query power down: "<< room << *timeStart << *timeEnd << *usedTime << *status;
+        }
+    }
+    mutex.unlock();
+}
+
 
 ///////////////////////////////////////////////////////////////
 dataBaseController::dataBaseController(QObject *parent)
@@ -93,6 +119,7 @@ dataBaseController::dataBaseController(QObject *parent)
     QObject::connect(thread, &QThread::started, mDatabaseConnector, &databaseConnector::initializeDatabaseConnection);
     QObject::connect(this, &dataBaseController::insertDataToDb, mDatabaseConnector, &databaseConnector::insertDataToDb,Qt::QueuedConnection);
     QObject::connect(this, &dataBaseController::updateDataToPowerDownDb, mDatabaseConnector, &databaseConnector::updateDataToPowerDownDb,Qt::QueuedConnection);
+    QObject::connect(this, &dataBaseController::getPowerDownInformation, mDatabaseConnector, &databaseConnector::getPowerDownInformation,Qt::QueuedConnection);
     this->thread->start();
 }
 

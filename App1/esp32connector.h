@@ -22,10 +22,12 @@ public:
     QTimer* heartbeat;
     QTimer* usedTimeTimer;
     QTime usedTime = QTime(0, 0, 0);
+    QString firstConnectionStatus = "";
 public slots:
     void initializeSocket();
     bool connectToRoom();
     void tryToConnect();
+    void getFirstConnectStatus(QString cmd);
     bool writeDataToRoom(QString data);
     QString readDataFromRoom();
     QString sendCmd(QString cmd);
