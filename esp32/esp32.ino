@@ -78,6 +78,7 @@ void handleTCPClient() {
       Serial.println("PC connected!");
       while (client.connected()) {
           client.setTimeout(10000);
+          Serial.println("Listenning message from PC...");
           String data = client.readStringUntil('\n');
           if (!data.length() == 0) {
             Serial.print("Received: ");
@@ -95,6 +96,7 @@ void handleTCPClient() {
       return;
     }
   }
+   Serial.println("While timeout, back to UDP listenning...");
 }
 
 void listenForUDP() {

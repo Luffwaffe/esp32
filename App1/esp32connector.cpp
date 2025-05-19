@@ -7,10 +7,8 @@ connector::connector(QObject* parent)
 
 void connector::initializeSocket()
 {
-    mainSocket = new QTcpSocket(this);
-    discoverSocket = new QUdpSocket(this);
-    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 0);
-    discoverSocket->bind(0);
+    mainSocket = nullptr;
+    discoverSocket = nullptr;
     tryToConnect();
     heartBeat();
 }
@@ -20,32 +18,34 @@ bool connector::connectToRoom()
     bool retval = false;
     //UDP
     if(discoverSocket->writeDatagram(this->mParent->getRoomInfor("name").toUtf8().data(), QHostAddress::Broadcast, 9999)){
-        if (discoverSocket->hasPendingDatagrams()) {
-            QByteArray datagram;
-            datagram.resize(discoverSocket->pendingDatagramSize());
-            QHostAddress sender;
-            quint16 senderPort;
+        if (discoverSocket->waitForReadyRead(1000)){
+            if (discoverSocket->hasPendingDatagrams()) {
+                QByteArray datagram;
+                datagram.resize(discoverSocket->pendingDatagramSize());
+                QHostAddress sender;
+                quint16 senderPort;
 
-            discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
+                discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
 
-            qDebug() << this->mParent->getRoomInfor("name") +": Received UDP message from Esp32: " << datagram;
+                qDebug() << this->mParent->getRoomInfor("name") +": Received UDP message from Esp32: " << datagram;
 
-            if (datagram == this->mParent->getRoomInfor("name")){
-                qDebug() << this->mParent->getRoomInfor("name") + ": discovered Esp32 at: " << sender.toString();
-                this->mParent->address = sender.toString();
-                //TCP
-                this->mainSocket->connectToHost(mParent->address, mParent->port);
-                if (this->mainSocket->waitForConnected(3000)){
-                    retval = true;
-                }
-                else{
-                    qDebug() << mParent->name+ ": Failed to connect to TCP Esp32!";
+                if (datagram == this->mParent->getRoomInfor("name")){
+                    qDebug() << this->mParent->getRoomInfor("name") + ": discovered Esp32 at: " << sender.toString();
+                    this->mParent->address = sender.toString();
+                    //TCP
+                    this->mainSocket->connectToHost(mParent->address, mParent->port);
+                    if (this->mainSocket->waitForConnected(10000)){
+                        retval = true;
+                    }
+                    else{
+                        qDebug() << mParent->name+ ": Failed to connect to TCP Esp32!";
+                    }
                 }
             }
-        }
-        else{
-            qDebug() << mParent->name+ ": Failed to connect to UDP Esp32!";
-            QThread::sleep(1);
+            else{
+                qDebug() << mParent->name+ ": Failed to connect to UDP Esp32!";
+                QThread::sleep(1);
+            }
         }
     }
     else {
@@ -66,7 +66,7 @@ void connector::tryToConnect()
     mainSocket = new QTcpSocket(this);
     discoverSocket = new QUdpSocket(this);
     this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 0);
-    discoverSocket->bind(0);
+    discoverSocket->bind(9999);
 
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
         qDebug() << mParent->name + ": Connected to TCP Esp32!";
