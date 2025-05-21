@@ -5,10 +5,10 @@
 
 // BOM MUSIC BOX
 // 66668888
-// const char* ssid = "NAVY_FAST_5G"; 
-// const char* password = "12345678";
-const char* ssid = "Q iphone"; 
-const char* password = "11111111";
+const char* ssid = "NAVY_FAST_5G"; 
+const char* password = "12345678";
+// const char* ssid = "Q iphone"; 
+// const char* password = "11111111";
 String localIp;
 const char* name = "Room1";
 
@@ -87,33 +87,39 @@ void controlRoom(String cmd){
 }
 
 // Function to handle the TCP client interaction
+unsigned long startAttemptTime = millis();
 void handleTCPClient() {
   Serial.println("handle TCP Client!");
+  int index = 0;
   while(1){
-    client = server.available();
-    if (client) {
-      Serial.println("PC connected!");
-      while (client.connected()) {
-          client.setTimeout(10000);
-          Serial.println("Listenning message from PC...");
-          String data = client.readStringUntil('\n');
-          if (!data.length() == 0) {
-            Serial.print("Received: ");
-            Serial.println(data);
-            controlRoom(data);
-          }
-          else{
-            Serial.println("Connection timeout, Client disconnected");
-            break;
-          }
-      }
-      client.stop();
-      Serial.println("Client disconnected, Listening for UDP broadcast message again...");
-      udp.begin(UDP_PORT);
-      return;
+    while (!client && index < 50) {
+      client = server.available();
+      Serial.println("Searching for pc client ...");
+      index++;
+      delay(100);
     }
+    while (client.connected()) {
+      client.setTimeout(10000);
+      Serial.println("Connected listenning message from PC...");
+      String data = client.readStringUntil('\n');
+      if (!data.length() == 0) {
+        Serial.print("Received: ");
+        Serial.println(data);
+        controlRoom(data);
+      }
+      else{
+        udp.begin(UDP_PORT);
+        Serial.println("Connection timeout, Client disconnected back to UDP listenning...");
+        break;
+      }
+    }
+    // else{
+      client.clear();
+      udp.begin(UDP_PORT);
+      Serial.println("While timeout, back to UDP listenning...");
+      break;
+    // }
   }
-   Serial.println("While timeout, back to UDP listenning...");
 }
 
 void listenForUDP() {

@@ -58,10 +58,6 @@ bool connector::connectToRoom()
                     }
                 }
             }
-            // else{
-            //     qDebug() << mParent->name+ ": Failed to connect to UDP Esp32!";
-            //     QThread::sleep(1);
-            // }
         }
     }
     else {
@@ -82,7 +78,7 @@ void connector::tryToConnect()
     mainSocket = new QTcpSocket(this);
     discoverSocket = new QUdpSocket(this);
     this->discoverSocket->setSocketOption(QAbstractSocket::MulticastLoopbackOption, 1);
-    discoverSocket->bind(9999);
+    discoverSocket->bind(8888);
 
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
         qDebug() << mParent->name + ": Connected to TCP Esp32!";
