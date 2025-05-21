@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS SerialPort)
 find_package(Qt6 REQUIRED COMPONENTS Sql)
+find_package(Qt6 REQUIRED COMPONENTS Network)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -33,7 +34,7 @@ set_target_properties(appApp1 PROPERTIES
 )
 
 target_link_libraries(appApp1
-    PRIVATE Qt6::Quick Qt6::SerialPort Qt6::Sql
+    PRIVATE Qt6::Quick Qt6::SerialPort Qt6::Sql  Qt6::Network
 
 )
 

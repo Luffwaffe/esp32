@@ -5,10 +5,10 @@
 
 // BOM MUSIC BOX
 // 66668888
-const char* ssid = "NAVY_FAST_5G"; 
-const char* password = "12345678";
-// const char* ssid = "FPT Thanh Duyen"; 
-// const char* password = "27061994";
+// const char* ssid = "NAVY_FAST_5G"; 
+// const char* password = "12345678";
+const char* ssid = "Q iphone"; 
+const char* password = "11111111";
 String localIp;
 const char* name = "Room1";
 
@@ -17,7 +17,23 @@ const int TCP_PORT = 12345;
 WiFiServer server;
 WiFiClient client;
 WiFiUDP udp;
-
+void WiFiEvent(WiFiEvent_t event) {
+  switch (event) {
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+      Serial.println("WiFiEvent WiFi lost connection. Reconnecting...");
+      WiFi.reconnect();
+      break;
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+      Serial.println("WiFiEvent WiFi connected.");
+      break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      Serial.print("WiFiEvent IP address: ");
+      Serial.println(WiFi.localIP());
+      break;
+    default:
+      break;
+  }
+}
 void setup() {
   
   pinMode(CONTROL_PIN, OUTPUT);
@@ -25,6 +41,7 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  WiFi.onEvent(WiFiEvent);
   Serial.println("Connecting to WiFi...");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {

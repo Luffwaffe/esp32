@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QUdpSocket>
 #include "databasecontroller.h"
+#include <QNetworkInterface>
 
 class esp32Connector;
 class connector : public QObject
@@ -18,6 +19,7 @@ class connector : public QObject
 public:
     QTcpSocket *mainSocket;
     QUdpSocket *discoverSocket;
+    QList<QHostAddress> localAddresses;
     connector(QObject* parent);
     QTimer* heartbeat;
     QTimer* usedTimeTimer;

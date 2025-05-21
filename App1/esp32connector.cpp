@@ -9,6 +9,13 @@ void connector::initializeSocket()
 {
     mainSocket = nullptr;
     discoverSocket = nullptr;
+    for (auto addr : QNetworkInterface::allAddresses()) {
+        if (addr.protocol() == QAbstractSocket::IPv4Protocol || addr.protocol() == QAbstractSocket::IPv6Protocol
+            && !addr.isLoopback()) {
+            localAddresses.append(addr);
+        }
+    }
+
     tryToConnect();
     heartBeat();
 }
@@ -19,14 +26,23 @@ bool connector::connectToRoom()
     //UDP
     if(discoverSocket->writeDatagram(this->mParent->getRoomInfor("name").toUtf8().data(), QHostAddress::Broadcast, 9999)){
         if (discoverSocket->waitForReadyRead(1000)){
-            if (discoverSocket->hasPendingDatagrams()) {
+            while (discoverSocket->hasPendingDatagrams()) {
                 QByteArray datagram;
                 datagram.resize(discoverSocket->pendingDatagramSize());
                 QHostAddress sender;
                 quint16 senderPort;
 
                 discoverSocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
-
+                quint32 possibleV4 = sender.toIPv4Address();
+                if (possibleV4 != 0) {
+                    // you now have a pure IPv4 form
+                    sender = QHostAddress(possibleV4);
+                }
+                if (localAddresses.contains(sender) || sender == QHostAddress::LocalHost) {
+                    qDebug() << "Ignored own broadcast from" << sender;
+                    QThread::sleep(1);
+                    continue;
+                }
                 qDebug() << this->mParent->getRoomInfor("name") +": Received UDP message from Esp32: " << datagram;
 
                 if (datagram == this->mParent->getRoomInfor("name")){
@@ -42,10 +58,10 @@ bool connector::connectToRoom()
                     }
                 }
             }
-            else{
-                qDebug() << mParent->name+ ": Failed to connect to UDP Esp32!";
-                QThread::sleep(1);
-            }
+            // else{
+            //     qDebug() << mParent->name+ ": Failed to connect to UDP Esp32!";
+            //     QThread::sleep(1);
+            // }
         }
     }
     else {
@@ -65,7 +81,7 @@ void connector::tryToConnect()
     }
     mainSocket = new QTcpSocket(this);
     discoverSocket = new QUdpSocket(this);
-    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 0);
+    this->discoverSocket->setSocketOption(QAbstractSocket::MulticastLoopbackOption, 1);
     discoverSocket->bind(9999);
 
     connect(mainSocket, &QTcpSocket::connected, this, [&]() {
